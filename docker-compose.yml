@@ -10,10 +10,10 @@ services:
       - APP_ENV="prod"
       - APP_DEBUG="True"
       - APP_PORT=8000
-      - MONGODB_DATABASE=flaskdb
-      - MONGODB_USERNAME=flask-user
-      - MONGODB_PASSWORD=L4uf3nfurd31nl3b3n!
-      - MONGODB_HOSTNAME=mongodb
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
+      - MONGODB_USERNAME=${MONGODB_USERNAME}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - MONGODB_HOSTNAME=${MONGODB_HOSTNAME}
     command: >
       sh -c "python run.py"
     volumes:
@@ -32,11 +32,11 @@ services:
     restart: always
     command: mongod --auth
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=mongodbuser
-      - MONGO_INITDB_ROOT_PASSWORD=changeme
-      - MONGO_INITDB_DATABASE=flaskdb
-      - MONGODB_DATA_DIR=/data/db
-      - MONGODB_LOG_DIR=/dev/null
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+      - MONGODB_DATA_DIR=${MONGODB_DATA_DIR}
+      - MONGODB_LOG_DIR=${MONGODB_LOG_DIR}
     volumes:
       - mongodbdata:/data/db
     networks:
