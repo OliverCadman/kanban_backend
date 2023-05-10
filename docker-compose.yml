@@ -1,0 +1,55 @@
+version: "3.7"
+
+services:
+  flask:
+    build:
+      context: .
+    container_name: flask
+    restart: always
+    environment:
+      - APP_ENV="prod"
+      - APP_DEBUG="True"
+      - APP_PORT=8000
+      - MONGODB_DATABASE=flaskdb
+      - MONGODB_USERNAME=flaskuser
+      - MONGODB_PASSWORD=changeme
+      - MONGODB_HOSTNAME=mongodb
+    command: >
+      sh -c "python app.py"
+    volumes:
+      - ./app:/app
+    depends_on:
+      - mongodb
+    networks:
+      - frontend
+      - backend
+    ports:
+      - "8000:8000"
+
+  mongodb:
+    image: mongo:4.0.8
+    container_name: mongodb
+    restart: always
+    command: mongod --auth
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=mongodbuser
+      - MONGO_INITDB_ROOT_PASSWORD=changeme
+      - MONGO_INITDB_DATABASE=flaskdb
+      - MONGODB_DATA_DIR=/data/db
+      - MONGODB_LOG_DIR=/dev/null
+    volumes:
+      - mongodbdata:/data/db
+    networks:
+      - backend
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+volumes:
+  mongodbdata:
+    driver: local
+  app:
+    driver: local
