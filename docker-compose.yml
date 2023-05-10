@@ -11,11 +11,11 @@ services:
       - APP_DEBUG="True"
       - APP_PORT=8000
       - MONGODB_DATABASE=flaskdb
-      - MONGODB_USERNAME=flaskuser
-      - MONGODB_PASSWORD=changeme
+      - MONGODB_USERNAME=flask-user
+      - MONGODB_PASSWORD=L4uf3nfurd31nl3b3n!
       - MONGODB_HOSTNAME=mongodb
     command: >
-      sh -c "python app.py"
+      sh -c "python run.py"
     volumes:
       - ./app:/app
     depends_on:
