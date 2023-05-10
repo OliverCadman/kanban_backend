@@ -4,6 +4,8 @@ from flask_pymongo import PyMongo
 from application.users.views import users as user_bp
 from application.database import mongo
 
+from exceptions.handlers import EmailExistsError
+
 import os
 
 
