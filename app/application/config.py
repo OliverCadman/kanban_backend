@@ -18,12 +18,12 @@ class Config:
     + os.environ["MONGODB_DATABASE"]
     )
     
-    TESTING = True
+    SECURITY_PASSWORD_SALT = os.environ.get("SECURITY_PASSWORD_SALT")
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
     MAIL_SERVER = os.environ.get("MAIL_SERVER")
-    MAIL_PORT = os.environ.get("MAIL_PORT")
-    MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS")
-    MAIL_USE_SSL = os.environ.get("MAIL_USE_SSL")
-    MAIL_DEBUG = os.environ.get("MAIL_DEBUG")
+    MAIL_PORT = int(os.environ.get("MAIL_PORT"))
+    MAIL_USE_TLS = bool(int(os.environ.get("MAIL_USE_TLS")))
+    MAIL_USE_SSL = bool(int(os.environ.get("MAIL_USE_SSL")))
+    MAIL_DEBUG = bool(os.environ.get("MAIL_DEBUG"))
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER")

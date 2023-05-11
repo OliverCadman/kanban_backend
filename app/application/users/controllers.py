@@ -16,6 +16,7 @@ import os
 
 import re
 import json
+from bson.objectid import ObjectId
 
 
 class User:
@@ -25,12 +26,14 @@ class User:
         self.username = username
         self.email = email
         self.password = password
+        self.is_confirmed = False
     
     def _get_user_profile(self):
         return {
             "username": self.username,
             "email": self.email,
-            "password": self.password
+            "password": self.password,
+            "is_confirmed": self.is_confirmed
         }
 
     def _check_user_exists(self, email):
@@ -100,3 +103,14 @@ class User:
                 user_data["password"] = generate_password_hash(
                     user_data['password'])
                 mongo.db.users.insert_one(user_data)
+    
+    @staticmethod
+    def update_email_verification_status(user_id):
+
+        mongo.db.users.update_one({
+            "_id": user_id,
+        },{
+              "$set": {
+                "is_confirmed": True
+            }
+        })
