@@ -6,6 +6,11 @@ class EmailExistsError(BadRequest):
     description = "A user with that email already exists"
 
 
+class EmailValidationError(BadRequest):
+    code = 400
+    description = "Email is invalid."
+
+
 class AbstractPasswordValidationException(BadRequest):
     code = 400
     description = 'This is the parent class'

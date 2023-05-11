@@ -2,6 +2,7 @@ from flask import Response, Blueprint, request
 from application.users.controllers import User
 from exceptions.handlers import (
     EmailExistsError,
+    EmailValidationError,
     PasswordTooShortError,
     PasswordCharacterCaseError,
     PasswordDigitError,
@@ -31,6 +32,8 @@ def register():
         try:
             new_user = User(username=username, email=email, password=password)
             new_user.register()
+        except EmailValidationError:
+            return Response("Email is invalid.", status=400)
         except EmailExistsError:
             return Response("Email already exists.", status=400)
         except PasswordTooShortError:

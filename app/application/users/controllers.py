@@ -3,16 +3,23 @@
 from werkzeug.security import generate_password_hash
 from exceptions.handlers import (
     EmailExistsError,
+    EmailValidationError,
     PasswordTooShortError,
     PasswordCharacterCaseError,
     PasswordDigitError,
     PasswordSpecialCharacterError
     )
 from application.database import mongo
+import requests
+from requests.structures import CaseInsensitiveDict
+import os
 
 import re
+import json
+
 
 class User:
+    """Controller for the User object."""
 
     def __init__(self, username, email, password):
         self.username = username
@@ -40,6 +47,25 @@ class User:
             return False
     
     @staticmethod
+    def _validate_email(email):
+        url = f"https://api.emailvalidation.io/v1/info?email={email}"
+
+        headers = CaseInsensitiveDict()
+        headers["apikey"] = os.environ.get('VALIDATE_EMAIL_API_KEY')
+
+        res = requests.get(url, headers=headers)
+
+        res_json = res.content.decode('utf8').replace("'", '"')
+        data = json.loads(res_json)
+        formatted = json.dumps(data, indent=4, sort_keys=True)
+        print(data)
+
+        if data.get("message") == "Validation error":
+            raise EmailValidationError()
+        else:
+            return True
+
+    @staticmethod
     def _check_password_valid(password):
         """
         Check if the password satisfies the following criteria:
@@ -62,6 +88,8 @@ class User:
     
     def register(self):
         user_data = self._get_user_profile()
+
+        self._validate_email(user_data["email"])
 
         user_exists = self._check_user_exists(user_data["email"])
 
