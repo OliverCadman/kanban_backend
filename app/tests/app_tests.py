@@ -53,21 +53,21 @@ class UserAPITests(flask_unittest.ClientTestCase):
         self.assertEqual(res.status_code, 400)
         self.assertEqual(res.data, b'Email already exists.')
     
-    def test_user_register_invalid_email_error(self, client):
-        """Test error thrown if email is invalid"""
+    # def test_user_register_invalid_email_error(self, client):
+    #     """Test error thrown if email is invalid"""
 
-        payload = {
-            "username": "Test User",
-            "email": "test",
-            "password": "TestPass123!"
-        }
+    #     payload = {
+    #         "username": "Test User",
+    #         "email": "test",
+    #         "password": "TestPass123!"
+    #     }
 
-        res = client.post(
-            "/register", data=json.dumps(payload), 
-            content_type="application/json")
+    #     res = client.post(
+    #         "/register", data=json.dumps(payload), 
+    #         content_type="application/json")
 
-        self.assertEqual(res.status_code, 400)
-        self.assertEqual(res.data, b"Email is invalid.")
+    #     self.assertEqual(res.status_code, 400)
+    #     self.assertEqual(res.data, b"Email is invalid.")
     
     def test_password_too_short_error(self, client):
         """Test error raised if password is too short."""

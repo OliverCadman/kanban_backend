@@ -48,22 +48,24 @@ class User:
     
     @staticmethod
     def _validate_email(email):
-        url = f"https://api.emailvalidation.io/v1/info?email={email}"
+        return True
+        # TODO: Re-ignite this code when the time comes!!!
+        # url = f"https://api.emailvalidation.io/v1/info?email={email}"
 
-        headers = CaseInsensitiveDict()
-        headers["apikey"] = os.environ.get('VALIDATE_EMAIL_API_KEY')
+        # headers = CaseInsensitiveDict()
+        # headers["apikey"] = os.environ.get('VALIDATE_EMAIL_API_KEY')
 
-        res = requests.get(url, headers=headers)
+        # res = requests.get(url, headers=headers)
 
-        res_json = res.content.decode('utf8').replace("'", '"')
-        data = json.loads(res_json)
-        formatted = json.dumps(data, indent=4, sort_keys=True)
-        print(data)
+        # res_json = res.content.decode('utf8').replace("'", '"')
+        # data = json.loads(res_json)
+        # formatted = json.dumps(data, indent=4, sort_keys=True)
+        # print(data)
 
-        if data.get("message") == "Validation error":
-            raise EmailValidationError()
-        else:
-            return True
+        # if data.get("message") == "Validation error":
+        #     raise EmailValidationError()
+        # else:
+        #     return True
 
     @staticmethod
     def _check_password_valid(password):

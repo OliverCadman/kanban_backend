@@ -8,24 +8,14 @@ from exceptions.handlers import EmailExistsError
 
 import os
 
+from application.config import Config
 
 
-def create_app():
+def create_app(default_config=Config):
     """Define the Flask Application"""
 
     app = Flask(__name__)
-    app.config["MONGO_URI"] = (
-    "mongodb://"
-    + os.environ["MONGODB_USERNAME"]
-    + ":"
-    + os.environ["MONGODB_PASSWORD"]
-    + "@"
-    + os.environ["MONGODB_HOSTNAME"]
-    + ":27017/"
-    + os.environ["MONGODB_DATABASE"]
-    )   
-    app.config["TESTING"] = True
-
+    app.config.from_object(default_config)
     mongo.init_app(app)
     app.register_blueprint(user_bp)
 
