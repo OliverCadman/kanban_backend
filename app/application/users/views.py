@@ -1,4 +1,5 @@
 from flask import Response, Blueprint, request, jsonify, url_for
+from flask_jwt_extended import create_access_token
 from application.users.controllers import User
 from exceptions.handlers import (
     EmailExistsError,
@@ -104,3 +105,32 @@ def confirm_email(token):
         }), 400
 
 
+@users.route('/login', methods=['POST'])
+def login():
+    """
+    Route to log a user in.
+    Creates a JWT token if user validated correctly.
+    Otherwise, return a 400 error.
+    """
+    if request.method == 'POST':
+        data = request.json
+        email = data['email']
+        password = data['password']
+
+        if not data or not password:
+            return jsonify({
+                'msg': 'Please provide an email/password,'
+            })
+        
+        user = User.find_user_by_email(email)
+        if user:
+            password_check = User.check_password(user['password'], password)
+            if password_check:
+                token = create_access_token(identity=email)
+                print('TOKEN:', token)
+                return jsonify(token=token), 200
+            else:
+                return jsonify({
+                    'msg': 'Your password is invalid.'
+                }), 401
+            

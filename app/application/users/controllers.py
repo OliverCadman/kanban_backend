@@ -1,6 +1,6 @@
 
 
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from exceptions.handlers import (
     EmailExistsError,
     EmailValidationError,
@@ -114,3 +114,21 @@ class User:
                 "is_confirmed": True
             }
         })
+    
+    @staticmethod
+    def check_password(password_hash, password):
+        """
+        Confirm that the password hash matches the password passed in.
+        """
+        return check_password_hash(password_hash, password)
+
+    @staticmethod
+    def find_user_by_email(email):
+        """
+        Query DB to find user by email address.
+        """
+
+        return mongo.db.users.find_one({
+            'email': email
+        })
+

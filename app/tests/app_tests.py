@@ -8,6 +8,11 @@ from application.database import mongo
 
 from werkzeug.security import check_password_hash
 
+
+def client_post_helper(client, endpoint, data):
+    return client.post(endpoint, data=json.dumps(data), content_type='application/json')
+
+
 class UserAPITests(flask_unittest.ClientTestCase):
 
     app = create_app()
@@ -165,7 +170,6 @@ class UserAPITests(flask_unittest.ClientTestCase):
         }
 
         res = client.post('/register', data=json.dumps(payload), content_type='application/json')
-        data = json.loads(res.data)
 
         res = client.get("/confirm_email/incorrect_token")
         self.assertEqual(res.status_code, 400)
@@ -173,6 +177,44 @@ class UserAPITests(flask_unittest.ClientTestCase):
 
         user = mongo.db.users.find_one({'email': payload['email']})
         self.assertFalse(user['is_confirmed'] == True)
+    
+    def test_get_jwt_token(self, client):
+        """Test authenticating registered user and return of JWT"""
+
+        payload = {
+            "username": "Test User",
+            "email": "test9@email.com",
+            "password": "testPass123!"
+        }
+
+        res = client_post_helper(client, '/register', payload)
+        self.assertEqual(res.status_code, 201)
+        res = client_post_helper(client, '/login', {
+            "email": payload["email"],
+            "password": payload["password"]
+        })
+
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("token", json.loads(res.data))
+    
+    def test_get_jwt_token_error(self, client):
+        """Test error raised if logging in with bad password."""
+
+        payload = {
+            "username": "Test User",
+            "email": "test10@email.com",
+            "password": "testPass123!"
+        }
+
+        res = client_post_helper(client, "/register", payload)
+
+        res = client_post_helper(client, "login", {
+            "email": "test10@email.com",
+            "password": "badPassword123!"
+        })
+
+        self.assertEqual(res.status_code, 401)
+        self.assertEqual(json.loads(res.data)['msg'], 'Your password is invalid.')
 
     def tearDown(self, client):
         # Clear dev database after running tests
