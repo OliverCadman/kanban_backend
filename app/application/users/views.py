@@ -1,5 +1,5 @@
 from flask import Response, Blueprint, request, jsonify, url_for
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from application.users.controllers import User
 from exceptions.handlers import (
     EmailExistsError,
@@ -29,9 +29,12 @@ def parse_json(data):
     return json.loads(json_util.dumps(data))
 
 
-@users.route('/user_profile')
+@users.route('/user_profile', methods=['GET'])
+@jwt_required()
 def user_profile():
-    return 'User Profile'
+    user_email = get_jwt_identity()
+    user = User.find_user_no_password(user_email)
+    return parse_json(user), 200
 
 
 @users.route('/register', methods=["POST"])
@@ -127,7 +130,7 @@ def login():
             password_check = User.check_password(user['password'], password)
             if password_check:
                 token = create_access_token(identity=email)
-                print('TOKEN:', token)
+  
                 return jsonify(token=token), 200
             else:
                 return jsonify({

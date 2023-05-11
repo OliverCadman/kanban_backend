@@ -131,4 +131,11 @@ class User:
         return mongo.db.users.find_one({
             'email': email
         })
+    
+    @staticmethod
+    def find_user_no_password(email):
+        """Return user profile without password field"""
+
+        return mongo.db.users.find_one(
+            {'email': email}, {'password': 0, 'is_confirmed': 0})
 

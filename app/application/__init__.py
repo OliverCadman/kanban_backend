@@ -4,6 +4,7 @@ from flask_mail import Mail
 from flask_jwt_extended import JWTManager
 
 from application.users.views import users as user_bp
+from application.boards.views import boards as boards_bp
 from application.database import mongo
 from application.mail import mailing
 
@@ -25,5 +26,6 @@ def create_app(default_config=Config):
     jwt = JWTManager(app)
 
     app.register_blueprint(user_bp)
+    app.register_blueprint(boards_bp)
 
     return app

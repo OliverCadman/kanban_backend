@@ -1,6 +1,7 @@
 """Unit Tests for App Configuration"""
 
 from application import create_app
+from application.test_helpers import client_post_helper
 import flask_unittest
 import json
 from unittest.mock import patch
@@ -9,22 +10,11 @@ from application.database import mongo
 from werkzeug.security import check_password_hash
 
 
-def client_post_helper(client, endpoint, data):
-    return client.post(endpoint, data=json.dumps(data), content_type='application/json')
-
-
 class UserAPITests(flask_unittest.ClientTestCase):
 
     app = create_app()
     def setUp(self, client):
         self.mongo = mongo
-
-
-    def test_user_profile_get(self, client):
-        res = client.get('/user_profile')
-
-        self.assertIn(b'User Profile', res.data)
-        self.assertEqual(res.status_code, 200)
     
     def test_register(self, client):
         """Test registering a new user is successful"""
@@ -215,7 +205,44 @@ class UserAPITests(flask_unittest.ClientTestCase):
 
         self.assertEqual(res.status_code, 401)
         self.assertEqual(json.loads(res.data)['msg'], 'Your password is invalid.')
+    
+    def test_get_user_profile(self, client):
+        """Test retrieving an authenticated user's profile."""
+
+        payload = {
+            "username": "Test User",
+            "email": "test11@email.com",
+            "password": "testPass123!"
+        }
+
+        client_post_helper(client, '/register', payload)
+        login_res = client_post_helper(client, '/login', {
+            "email": payload["email"],
+            "password": payload["password"]
+        })
+
+        jwt_token = json.loads(login_res.data)["token"]
+
+        profile_res = client.get('/user_profile', headers={
+            "Authorization": f"Bearer {jwt_token}"
+        })
+
+        self.assertEqual(profile_res.status_code, 200)
+        data = json.loads(profile_res.data)
+ 
+        for k, v in payload.items():
+            if k != "password":
+                self.assertEqual(data[k], v)
+    
+    def test_get_user_profile_no_token(self, client):
+        """Test 401 Error raised if JWT token invalid (user not authenticated.)"""
+
+        profile_res = client.get('/user_profile')
+
+        self.assertEqual(profile_res.status_code, 401)
+
 
     def tearDown(self, client):
         # Clear dev database after running tests
         self.mongo.db.users.delete_many({})
+    
