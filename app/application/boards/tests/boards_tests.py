@@ -51,7 +51,7 @@ class BoardAPITests(flask_unittest.AppClientTestCase):
 
         data = json.loads(res.data)
 
-        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.status_code, 201)
         self.assertIn("user", data)
         self.assertIn("columns", data)
         self.assertIn("name", data)
@@ -88,11 +88,131 @@ class BoardAPITests(flask_unittest.AppClientTestCase):
             content_type="application/json"
         )
         
-        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.status_code, 201)
         
         data = json.loads(res.data)
-        print("DATA:::", data)
+
         self.assertEqual(len(data["columns"]), 3)
+    
+    def test_board_update_columns(self, app, client):
+        """Test PATCH request to add columns to existing board."""
+
+        payload = {
+            "name": "Test Board Name",
+            "columns": [
+                {
+                    "name": "Test Column 1",
+                    "tasks": []
+                }, 
+                {
+                    "name": "Test Column 2",
+                    "tasks": []
+                }
+            ]
+        }
+
+        res = client.post('/api/create_board', 
+                headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+                }, 
+                data=json.dumps(payload), content_type="application/json"
+            )
+
+        data = json.loads(res.data)
+        new_columns = [
+            {
+                "name": "Test Column 3",
+                "tasks": []
+            },
+            {
+                "name": "Test Column 4",
+                "tasks": []
+            }
+        ]
+
+        payload = {
+            "columns_to_add": new_columns
+        }
+
+        board_id = data["_id"].get('$oid')
+
+        res = client.patch(
+            f"/api/update_board_columns/{board_id}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data)
+        self.assertEqual(len(data["columns"]), 4)
+
+        for i, column in enumerate(data["columns"]):
+            self.assertEqual(column["name"], f"Test Column {i + 1}")
+
+    def test_board_remove_columns(self, app, client):
+        """Test removing columns from an existing board"""
+
+        payload = {
+            "name": "Test Board Name",
+            "columns": [
+                {
+                    "name": "Test Column 1",
+                    "tasks": []
+                }, 
+                {
+                    "name": "Test Column 2",
+                    "tasks": []
+                },
+                {
+                    "name": "Test Column 3",
+                    "tasks": []
+                },
+                {
+                    "name": "Test Column 4",
+                    "tasks": []
+
+                }
+            ]
+        }
+
+        res = client.post('/api/create_board', 
+                headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+                }, 
+                data=json.dumps(payload), content_type="application/json"
+            )
+
+        self.assertEqual(res.status_code, 201)
+        data = json.loads(res.data)
+        board_id = data["_id"].get("$oid")
+
+        columns_to_remove = ["Test Column 4", "Test Column 3", "Test Column 2"]
+        column_ids = []
+        for v in data["columns"]:
+            if v["name"] in columns_to_remove:
+                column_ids.append(v["name"])
+        
+        payload = {
+            "columns_to_remove": column_ids
+        }
+
+        res = client.patch(
+            f"/api/update_board_columns/{board_id}",
+            headers = {
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data)
+    
+        self.assertEqual(len(data["columns"]), 1)
+        self.assertEqual(data["columns"][0]["name"], "Test Column 1")
 
 
     def tearDown(self, app, client):

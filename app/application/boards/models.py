@@ -32,6 +32,35 @@ class Board:
     def find_board_by_id(id):
         return mongo.db.boards.find_one({"_id": ObjectId(id)})
 
+    @staticmethod
+    def update_board_columns(id, column_arr):
+        return mongo.db.boards.update_one(
+            {"_id": ObjectId(id)},
+            {
+                "$push": {
+                    "columns": {
+                        "$each": column_arr
+                    }
+                }
+            }
+        )
+
+    @staticmethod
+    def remove_board_columns(id, column_arr):
+        print("COLUMN ARRAY:", column_arr)
+        return mongo.db.boards.update_one(
+            {"_id": ObjectId(id)},
+            {
+                "$pull": {
+                    "columns": {
+                        "name": {
+                            "$in": column_arr
+                        }
+                    }
+                }
+            }
+        )
+
 
 class Column:
     """
