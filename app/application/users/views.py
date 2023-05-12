@@ -1,6 +1,6 @@
-from flask import Response, Blueprint, request, jsonify, url_for
+from flask import Blueprint, request, jsonify, session
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from application.users.controllers import User
+from application.users.models import User
 from exceptions.handlers import (
     EmailExistsError,
     EmailValidationError,
@@ -11,22 +11,12 @@ from exceptions.handlers import (
     )
 from application.users.messaging import send_email
 
-import json
-from bson.objectid import ObjectId
-from bson import json_util
+from application.json_parser import parse_json
 
 from application.users.token import generate_token, confirm_token
 from application.database import mongo
 
 users = Blueprint("users", __name__)
-
-
-def parse_json(data):
-    """
-    Helper function to serialize a User object.
-    Required since ObjectId is non-JSON serializable.
-    """
-    return json.loads(json_util.dumps(data))
 
 
 @users.route('/user_profile', methods=['GET'])
@@ -51,14 +41,15 @@ def register():
         try:
             new_user = User(username=username, email=email, password=password)
             new_user.register()
+            session["user_email"] = new_user.email
             token =  generate_token(new_user.email)
             confirm_url = f"127.0.0.1:8000/confirm_email/{token}"
             subject = 'Please confirm your email address.'
-            send_email(
-                new_user.email,
-                subject,
-                url=confirm_url
-            )
+            # send_email(
+            #     new_user.email,
+            #     subject,
+            #     url=confirm_url
+            # )
 
         except EmailValidationError:
             return ("Email is invalid.", 400)

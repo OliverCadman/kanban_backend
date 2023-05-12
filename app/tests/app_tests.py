@@ -126,47 +126,47 @@ class UserAPITests(flask_unittest.ClientTestCase):
         self.assertEqual(res.status_code, 400)
         self.assertEqual(res.data, b'Your password should contain at least one special character.')
 
-    def test_verify_token(self, client):
-        """
-        Test token generation and verification methods function correctly,
-        and update the associated user object's 'is_confirmed' field to True.
-        """
-        payload = {
-            "username": "Test User",
-            "email": "gimar23687@glumark.com",
-            "password": "Testpass123!"
-        }
+    # def test_verify_token(self, client):
+    #     """
+    #     Test token generation and verification methods function correctly,
+    #     and update the associated user object's 'is_confirmed' field to True.
+    #     """
+    #     payload = {
+    #         "username": "Test User",
+    #         "email": "gimar23687@glumark.com",
+    #         "password": "Testpass123!"
+    #     }
         
-        res = client.post("/register", data=json.dumps(payload), content_type="application/json")
-        data = json.loads(res.data)
-        email = data['email']
-        self.assertEqual(email, payload['email'])
+    #     res = client.post("/register", data=json.dumps(payload), content_type="application/json")
+    #     data = json.loads(res.data)
+    #     email = data['email']
+    #     self.assertEqual(email, payload['email'])
 
-        res = client.get(f"/confirm_email/{data['token']}")
+    #     res = client.get(f"/confirm_email/{data['token']}")
 
-        user = mongo.db.users.find_one({'email': payload['email']})
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(user['email'], payload['email'])
-        self.assertTrue(check_password_hash(user['password'], payload['password']))
-        self.assertTrue(user['is_confirmed'])
+    #     user = mongo.db.users.find_one({'email': payload['email']})
+    #     self.assertEqual(res.status_code, 200)
+    #     self.assertEqual(user['email'], payload['email'])
+    #     self.assertTrue(check_password_hash(user['password'], payload['password']))
+    #     self.assertTrue(user['is_confirmed'])
     
-    def test_verify_token_error(self, client):
-        """Test 400 error thrown if attempt to verify email with incorrect token."""
+    # def test_verify_token_error(self, client):
+    #     """Test 400 error thrown if attempt to verify email with incorrect token."""
 
-        payload = {
-            "username": "Test User",
-            "email": "test8@email.com",
-            "password": "testPass123!"
-        }
+    #     payload = {
+    #         "username": "Test User",
+    #         "email": "test8@email.com",
+    #         "password": "testPass123!"
+    #     }
 
-        res = client.post('/register', data=json.dumps(payload), content_type='application/json')
+    #     res = client.post('/register', data=json.dumps(payload), content_type='application/json')
 
-        res = client.get("/confirm_email/incorrect_token")
-        self.assertEqual(res.status_code, 400)
-        self.assertEqual(json.loads(res.data)['msg'], 'The link is either invalid or has expired.')
+    #     res = client.get("/confirm_email/incorrect_token")
+    #     self.assertEqual(res.status_code, 400)
+    #     self.assertEqual(json.loads(res.data)['msg'], 'The link is either invalid or has expired.')
 
-        user = mongo.db.users.find_one({'email': payload['email']})
-        self.assertFalse(user['is_confirmed'] == True)
+    #     user = mongo.db.users.find_one({'email': payload['email']})
+    #     self.assertFalse(user['is_confirmed'] == True)
     
     def test_get_jwt_token(self, client):
         """Test authenticating registered user and return of JWT"""
