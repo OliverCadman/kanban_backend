@@ -129,10 +129,93 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
 
 
     def test_add_task_with_subtasks(self, app, client):
-        pass
+        
+        subtasks = [
+            {
+                "title": "Test Subtask Title 1",
+                "isCompleted": False,
+            },
+            {
+                "title": "Test Subtask Title 2",
+                "isCompleted": False
+            },
+            {
+                "title": "Test Subtask Title 3",
+                "isCompleted": False
+            }
+        ]
+
+        payload = {
+            "title": "Test Task Title",
+            "description": "Test Task Description",
+            "subtasks": subtasks
+        }
+
+        res = client.patch(
+            f"/api/add_task/{self.board_id}/{self.test_column_1}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 200)
+
+        data = json.loads(res.data)
+        self.assertEqual(len(data["columns"][0]["tasks"]), 1)
+        self.assertEqual(data["columns"][0]["tasks"][0]["title"], payload["title"])
+        self.assertEqual(data["columns"][0]["tasks"][0]["description"], payload["description"])
+
+        subtasks_data = data["columns"][0]["tasks"][0]["subtasks"]
+        self.assertEqual(len(subtasks_data), 3)
+
+        for k, v in payload.items():
+            if k in subtasks_data:
+                self.assertEqual(getattr(subtasks_data, k), v)
 
     def test_remove_task(self, app, client):
-        pass
+        payload = {
+            "title": "Test Task Title",
+            "description": "Test Task Description",
+            "subtasks": []
+        }
+
+        res = client.patch(
+            f"/api/add_task/{self.board_id}/{self.test_column_1}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload),
+            content_type="application/json"
+            )
+        
+        self.assertEqual(res.status_code, 200)
+        
+        data = json.loads(res.data)
+        self.assertEqual(len(data["columns"][0]["tasks"]), 1)
+        self.assertEqual(data["columns"][0]["tasks"][0]["title"], payload["title"])
+        self.assertEqual(data["columns"][0]["tasks"][0]["description"], payload["description"])
+        self.assertIn("subtasks", data["columns"][0]["tasks"][0])
+
+        task_to_remove_id = data["columns"][0]["tasks"][0]["_id"]
+
+        payload = {
+            "task_id": task_to_remove_id.get("$oid")
+        }
+
+        res = client.post(
+            f"/api/remove_task/{self.board_id}/{self.test_column_1}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data)
+        self.assertEqual(len(data["columns"][0]["tasks"]), 0)
 
     def test_add_task_unauthorized_user_error(self, app, client):
         pass

@@ -5,7 +5,7 @@ from application.users.models import User
 from application.boards.models import Board
 from bson.objectid import ObjectId
 
-from application.json_parser import parse_json
+from application.helpers import parse_json
 
 
 boards = Blueprint('boards', __name__)
@@ -132,7 +132,36 @@ def add_task(board_id, column_name):
     task = request.json
     task["_id"] = ObjectId()
 
+    if len(task["subtasks"]) > 0:
+        for subtask in task["subtasks"]:
+            subtask["_id"] = ObjectId()
+
     Board.add_task_to_column(board_id, column_name, task)
     updated_board = Board.find_board_by_id(board_id)
     return parse_json(updated_board), 200
 
+
+@boards.route("/api/remove_task/<board_id>/<column_name>", methods=["POST"])
+@jwt_required()
+def remove_task(board_id, column_name):
+    """
+    Remove a task from a given column.
+    The task's column is referenced by the column name,
+    under the board ID.
+    """
+
+    user_email = get_jwt_identity()
+    user_profile = User.find_user_no_password(user_email)
+    
+    if user_profile["email"] != session["user_email"]:
+        return jsonify({
+            "msg": "You are not authorized to access another user's boards."
+    }), 401
+
+    data = request.json
+    task_id = data["task_id"]
+
+    Board.remove_task_from_column(board_id, column_name, task_id)
+    updated_board = Board.find_board_by_id(board_id)
+
+    return parse_json(updated_board), 200

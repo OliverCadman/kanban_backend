@@ -8,3 +8,4 @@ def parse_json(data):
     Required since ObjectId is non-JSON serializable.
     """
     return json.loads(json_util.dumps(data))
+

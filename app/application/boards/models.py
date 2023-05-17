@@ -89,4 +89,20 @@ class Board:
                     }
                 }
             )
-        
+    
+    @staticmethod
+    def remove_task_from_column(board_id, column_name, task_id):
+        print(task_id)
+        return mongo.db.boards.find_one_and_update(
+            {
+                "_id": ObjectId(board_id),
+                "columns.name": column_name
+            },
+            {
+                "$pull": {
+                    "columns.$.tasks": {
+                        "_id": ObjectId(task_id)
+                    }
+                }
+            }
+        )

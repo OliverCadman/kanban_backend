@@ -11,7 +11,7 @@ from exceptions.handlers import (
     )
 from application.users.messaging import send_email
 
-from application.json_parser import parse_json
+from application.helpers import parse_json
 
 from application.users.token import generate_token, confirm_token
 from application.database import mongo
@@ -121,7 +121,7 @@ def login():
             password_check = User.check_password(user['password'], password)
             if password_check:
                 token = create_access_token(identity=email)
-  
+                session["user_email"] = email
                 return jsonify(token=token), 200
             else:
                 return jsonify({
