@@ -75,3 +75,18 @@ class Board:
         return mongo.db.boards.find_one(
             {"_id": ObjectId(board_id)}
         )
+    
+    @staticmethod
+    def add_task_to_column(board_id, column_name, task_data): 
+          return mongo.db.boards.find_one_and_update(
+                {
+                    "_id": ObjectId(board_id),
+                    "columns.name": column_name
+                },
+                {
+                    "$push": {
+                        "columns.$.tasks": task_data
+                    }
+                }
+            )
+        

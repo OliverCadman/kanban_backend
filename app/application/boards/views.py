@@ -112,12 +112,13 @@ def update_board_columns(board_id):
         return parse_json(updated_board), 200
 
 
-@boards.route('/api/add_task/<column_id>', methods=["POST", "PATCH"])
+@boards.route('/api/add_task/<board_id>/<column_name>', methods=["POST", "PATCH"])
 @jwt_required()
-def add_task(column_id):
+def add_task(board_id, column_name):
     """
     Add tasks for a given column.
-    The task's column is referenced by the column ID.
+    The task's column is referenced by the column name,
+    under the board ID.
     """
 
     user_email = get_jwt_identity()
@@ -128,17 +129,10 @@ def add_task(column_id):
             "msg": "You are not authorized to access another user's boards."
     }), 401
 
+    task = request.json
+    task["_id"] = ObjectId()
 
-    if user_profile is not None:
-        data = request.json
-
-        title = data["title"]
-        description = data["description"]
-
-        task = Task(column_id=column_id, title=title, description=description)
-
-        task_id = task.add_task()
-        task_obj = Task.get_task_by_id(task_id)
-
-        return parse_json(task_obj), 201
+    Board.add_task_to_column(board_id, column_name, task)
+    updated_board = Board.find_board_by_id(board_id)
+    return parse_json(updated_board), 200
 
