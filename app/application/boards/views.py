@@ -3,7 +3,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from application.users.models import User
 from application.boards.models import Board
-
 from bson.objectid import ObjectId
 
 from application.json_parser import parse_json
@@ -12,7 +11,7 @@ from application.json_parser import parse_json
 boards = Blueprint('boards', __name__)
 
 
-@boards.route('/api/create_board', methods=["POST"])
+@boards.route('/api/create_board/', methods=["POST"])
 @jwt_required()
 def add_board():
     """
@@ -24,6 +23,7 @@ def add_board():
     if request.method == "POST":
         user_email = get_jwt_identity()
         user_profile = User.find_user_no_password(user_email)
+
         
         if user_profile is not None:
             data = request.json
@@ -34,6 +34,7 @@ def add_board():
             if board_columns or len(board_columns) > 0:
                 for column in board_columns:
                     column['_id'] = ObjectId()
+        
 
             board = Board(user_profile['_id'], board_name, board_columns)
             inserted_board_id = board.add_board()
@@ -45,9 +46,52 @@ def add_board():
         return 'Error', 404
 
 
+@boards.route('/api/get_boards', methods=["GET"])
+@jwt_required()
+def get_boards():
+    user_email = get_jwt_identity()
+    user = User.find_user_no_password(user_email)
+
+    if user_email != session["user_email"]:
+        return jsonify({
+              "msg": "You are not authorized to access another user's boards."
+        }), 401
+
+    if user is not None:
+        board_collection = []
+        boards = Board.get_boards(user["_id"])
+        for board in boards:
+            board_collection.append(board)
+        return parse_json(board_collection), 200
+
+
+@boards.route("/api/get_board/<board_id>", methods=["GET"])
+@jwt_required()
+def get_board(board_id):
+    user_email = get_jwt_identity()
+    user = User.find_user_no_password(user_email)
+
+    if user["email"] != session["user_email"]:
+            return jsonify({
+              "msg": "You are not authorized to access another user's boards."
+        }), 401
+    
+    board = Board.get_board(board_id)
+    if board:
+        return parse_json(board), 200
+    else:
+        return jsonify({
+            "msg": "Sorry, the board does not exist"
+        }), 400
+
+
 @boards.route('/api/update_board_columns/<board_id>', methods=["PATCH"])
 @jwt_required()
 def update_board_columns(board_id):
+    """
+    Add or remove columns from a given board.
+    """
+
     user_email = get_jwt_identity()
     user_profile = User.find_user_no_password(user_email)
 
@@ -57,6 +101,9 @@ def update_board_columns(board_id):
         
         if "columns_to_add" in data:
             columns_to_add = data["columns_to_add"]
+            for column in columns_to_add:
+                column["_id"] = ObjectId()
+
             Board.update_board_columns(board_id, columns_to_add)
         else:
             columns_to_remove = data["columns_to_remove"]
@@ -64,4 +111,34 @@ def update_board_columns(board_id):
         updated_board = Board.find_board_by_id(board_id)
         return parse_json(updated_board), 200
 
+
+@boards.route('/api/add_task/<column_id>', methods=["POST", "PATCH"])
+@jwt_required()
+def add_task(column_id):
+    """
+    Add tasks for a given column.
+    The task's column is referenced by the column ID.
+    """
+
+    user_email = get_jwt_identity()
+    user_profile = User.find_user_no_password(user_email)
+
+    if user_profile["email"] != session["user_email"]:
+        return jsonify({
+            "msg": "You are not authorized to access another user's boards."
+    }), 401
+
+
+    if user_profile is not None:
+        data = request.json
+
+        title = data["title"]
+        description = data["description"]
+
+        task = Task(column_id=column_id, title=title, description=description)
+
+        task_id = task.add_task()
+        task_obj = Task.get_task_by_id(task_id)
+
+        return parse_json(task_obj), 201
 

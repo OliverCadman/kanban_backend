@@ -42,7 +42,7 @@ class BoardAPITests(flask_unittest.AppClientTestCase):
             "columns": []
         }
 
-        res = client.post('/api/create_board', 
+        res = client.post('/api/create_board/', 
                 headers={
                 "Authorization": f"Bearer {self.jwt_token}"
                 }, 
@@ -80,7 +80,7 @@ class BoardAPITests(flask_unittest.AppClientTestCase):
         }
 
         res = client.post(
-            "api/create_board",
+            "api/create_board/",
             headers ={
                 "Authorization": f"Bearer {self.jwt_token}",
             },
@@ -111,7 +111,7 @@ class BoardAPITests(flask_unittest.AppClientTestCase):
             ]
         }
 
-        res = client.post('/api/create_board', 
+        res = client.post('/api/create_board/', 
                 headers={
                 "Authorization": f"Bearer {self.jwt_token}"
                 }, 
@@ -178,7 +178,7 @@ class BoardAPITests(flask_unittest.AppClientTestCase):
             ]
         }
 
-        res = client.post('/api/create_board', 
+        res = client.post('/api/create_board/', 
                 headers={
                 "Authorization": f"Bearer {self.jwt_token}"
                 }, 
@@ -213,7 +213,6 @@ class BoardAPITests(flask_unittest.AppClientTestCase):
     
         self.assertEqual(len(data["columns"]), 1)
         self.assertEqual(data["columns"][0]["name"], "Test Column 1")
-
 
     def tearDown(self, app, client):
         mongo.db.users.delete_many({})

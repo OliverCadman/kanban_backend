@@ -1,5 +1,8 @@
 from application.database import mongo
+from collections.abc import Sequence
 from bson.objectid import ObjectId
+
+from typing import List
 
 
 class Board:
@@ -9,7 +12,7 @@ class Board:
     def __init__(self, user, name, columns):
         self.user = user
         self.name = name
-        self.columns = columns if isinstance(columns, list) else []
+        self.columns = columns if isinstance(columns, List) else []
     
     def _get_board(self):
         return {
@@ -47,7 +50,7 @@ class Board:
 
     @staticmethod
     def remove_board_columns(id, column_arr):
-        print("COLUMN ARRAY:", column_arr)
+
         return mongo.db.boards.update_one(
             {"_id": ObjectId(id)},
             {
@@ -61,31 +64,14 @@ class Board:
             }
         )
 
+    @staticmethod
+    def get_boards(user_id):
+        return mongo.db.boards.find(
+            {"user": ObjectId(user_id)}
+        )
 
-class Column:
-    """
-    Model to represent a single column
-    """
-    def __init__(self, board, name, tasks):
-        self.board = board
-        self.name = name
-        self.tasks = tasks if isinstance(tasks, list) else []
-
-    def _get_column(self):
-        return {
-            "board": self.board,
-            "name": self.name,
-            "tasks": self.tasks
-        }
-    
-    def add_column(self):
-        column = self._get_column
-        mongo.db.columns.insert_one(column)
-
-
-class Task:
-    pass
-
-
-class Subtask:
-    pass
+    @staticmethod
+    def get_board(board_id):
+        return mongo.db.boards.find_one(
+            {"_id": ObjectId(board_id)}
+        )
