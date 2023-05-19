@@ -1,6 +1,7 @@
 from application.database import mongo
-from collections.abc import Sequence
+from pymongo.collection import ReturnDocument
 from bson.objectid import ObjectId
+
 
 from typing import List
 
@@ -26,7 +27,7 @@ class Board:
 
         board_insert = mongo.db.boards.insert_one(board)
         return board_insert.inserted_id
-    
+
     @staticmethod
     def get_users_boards(id):
         return mongo.db.boards.find({"user": ObjectId(id)})
@@ -75,7 +76,68 @@ class Board:
         return mongo.db.boards.find_one(
             {"_id": ObjectId(board_id)}
         )
-    
+
+    @staticmethod
+    def get_task(board_id, column_name, task_id):
+        return list(mongo.db.boards.aggregate([
+            {
+                "$match": {
+                    "_id": ObjectId(board_id)
+                }
+            },
+            {
+                "$unwind": "$columns"
+            },
+            {
+                "$match": {
+                    "columns.name": column_name
+                }
+            },
+            {
+                "$replaceRoot": {
+                    "newRoot": "$columns"
+                }
+            },
+            {
+                "$unwind": "$tasks"
+            }, 
+            {
+                "$match": {
+                    "tasks._id": ObjectId(task_id)
+                }
+            },
+            {
+                "$replaceRoot": {
+                    "newRoot": "$tasks"
+                }
+            }
+        ])
+        )
+
+    @staticmethod
+    def add_subtasks_to_task(board_id, column_name, task_id, subtask_data):
+        """
+        Add array of subtasks to a given task.
+        Subtask array contains an arbitrary number of subtasks.
+        """
+   
+        return mongo.db.boards.find_one_and_update(
+                {"_id": ObjectId(board_id)},
+                {
+                    "$push": {
+                        "columns.$[t].tasks.$[i].subtasks": {
+                            "$each": subtask_data
+                        }
+                    }
+                },
+                array_filters=[
+                    {"t.name": column_name},
+                    {"i._id": ObjectId(task_id)}
+                ],
+                return_document=ReturnDocument.AFTER
+            )
+        
+
     @staticmethod
     def add_task_to_column(board_id, column_name, task_data): 
           return mongo.db.boards.find_one_and_update(
@@ -89,7 +151,7 @@ class Board:
                     }
                 }
             )
-    
+
     @staticmethod
     def remove_task_from_column(board_id, column_name, task_id):
         print(task_id)

@@ -141,6 +141,62 @@ def add_task(board_id, column_name):
     return parse_json(updated_board), 200
 
 
+@boards.route("/api/update_task/<board_id>/<column_name>/<task_id>", methods=["PATCH"])
+@jwt_required()
+def update_task(board_id, column_name, task_id):
+    """
+    Update a given task.
+
+    Task is referenced from the column by ID.
+    Column is referenced from board by unique column name.
+    Board is referenced by ID.
+
+    Handles changing a task title, description and adding/removing
+    of subtasks.
+    """
+
+    user_email = get_jwt_identity()
+
+    if user_email != session["user_email"]:
+        return jsonify({
+            "msg": "You are not authorized to access another user's boards."
+    }), 401
+
+    current_task = Board.get_task(board_id, column_name, task_id)
+
+    
+    data = request.json
+
+    current_subtasks = current_task[0]["subtasks"]
+    incoming_subtasks = data["subtasks"]
+
+    # If there are more subtasks in request payload than in the current collection
+    if len(current_subtasks) < len(incoming_subtasks):
+        subtasks_to_add = []
+        for subtask in incoming_subtasks:
+            if not "_id" in subtask:
+                # Update current task with new subtasks
+                subtasks_to_add.append(subtask)
+        
+        updated_board = Board.add_subtasks_to_task(
+            board_id, column_name, task_id, subtasks_to_add)
+        
+        return parse_json(updated_board), 200
+
+        
+
+    # If these are less sub tasks in request payload than in current collection
+    # if len(current_subtasks) > len(incoming_subtasks):
+    #     subtasks_to_remove = []
+    #     for subtask in incoming_subtasks:
+            
+
+
+
+    # If the subtask arrays are of equal length, but don't contain the same titles.
+
+
+
 @boards.route("/api/remove_task/<board_id>/<column_name>", methods=["POST"])
 @jwt_required()
 def remove_task(board_id, column_name):

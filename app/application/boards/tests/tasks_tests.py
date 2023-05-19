@@ -3,7 +3,10 @@ from application.test_helpers import client_post_helper
 from application.database import mongo
 import flask_unittest
 
+from application.boards.models import Board
+
 import json
+from application.helpers import parse_json
 
 
 class TaskAPITests(flask_unittest.AppClientTestCase):
@@ -175,6 +178,8 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
                 self.assertEqual(getattr(subtasks_data, k), v)
 
     def test_remove_task(self, app, client):
+        """Test removing a subtask from a given column is successful."""
+
         payload = {
             "title": "Test Task Title",
             "description": "Test Task Description",
@@ -217,5 +222,115 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         data = json.loads(res.data)
         self.assertEqual(len(data["columns"][0]["tasks"]), 0)
 
+    def test_update_task_title_add_subtasks(self, app, client):
+        """Test updating a task title and subtasks is successful."""
+        subtasks = [
+            {
+                "title": "Test Subtask Title 1",
+                "isCompleted": False,
+            },
+            {
+                "title": "Test Subtask Title 2",
+                "isCompleted": False
+            },
+            {
+                "title": "Test Subtask Title 3",
+                "isCompleted": False
+            }
+        ]
+
+        payload = {
+            "title": "Test Task Title",
+            "description": "Test Task Description",
+            "subtasks": subtasks
+        }
+
+        res = client.patch(
+            f"/api/add_task/{self.board_id}/{self.test_column_1}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 200)
+
+        data = json.loads(res.data)
+        self.assertEqual(len(data["columns"][0]["tasks"]), 1)
+        self.assertEqual(data["columns"][0]["tasks"][0]["title"], payload["title"])
+        self.assertEqual(data["columns"][0]["tasks"][0]["description"], payload["description"])
+
+        subtasks_data = data["columns"][0]["tasks"][0]["subtasks"]
+        self.assertEqual(len(subtasks_data), 3)
+
+        for k, v in payload.items():
+            if k in subtasks_data:
+                self.assertEqual(getattr(subtasks_data, k), v)
+
+
+        payload_2 = {
+            "title": "Test Task Title 2",
+            "description": "Test Task Description",
+            "subtasks": subtasks
+        }
+
+        client.patch(
+            f"/api/add_task/{self.board_id}/{self.test_column_1}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload_2),
+            content_type="application/json"
+        )
+
+        task_id = data["columns"][0]["tasks"][0]["_id"].get("$oid")
+
+        current_subtasks = Board.get_task(self.board_id, self.test_column_1, task_id)[0]["subtasks"]
+
+        subtasks_to_add = [
+            {
+                "title": "Test Subtask Title 4",
+                "isCompleted": False
+            },
+            {
+                "title": "Test Subtask Title 5",
+                "isCompleted": False
+            }
+        ]
+
+        patch_payload = {
+            "title": "New Task Title",
+            "subtasks": current_subtasks + subtasks_to_add
+        }
+
+        res = client.patch(
+            f"/api/update_task/{self.board_id}/{self.test_column_1}/{task_id}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(parse_json(patch_payload)),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 200)
+
+        data = json.loads(res.data)
+        print("RESPONSE DATA::::::::::::::::", data)
+        self.assertEqual(data["columns"][0]["tasks"][0]["title"], payload["title"])
+        self.assertEqual(len(data["columns"][0]["tasks"][0]["subtasks"]), 5)
+
+        subtasks_data = data["columns"][0]["tasks"][0]["subtasks"]
+        # combined_payloads = payload | patch_payload
+
+        # for k, v in combined_payloads:
+        #     if k not in subtasks_data:
+        #         self.assertEqual(getattr(subtasks_data, k), v)
+
+
     def test_add_task_unauthorized_user_error(self, app, client):
         pass
+
+    def tearDown(self, app, client):
+        mongo.db.users.delete_many({})
+        mongo.db.boards.delete_many({})
