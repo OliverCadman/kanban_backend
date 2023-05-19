@@ -115,12 +115,13 @@ class Board:
         )
 
     @staticmethod
-    def add_subtasks_to_task(board_id, column_name, task_id, subtask_data):
+    def update_task_add_subtasks(board_id, column_name,
+                            task_id, subtask_data, new_title, new_description):
         """
         Add array of subtasks to a given task.
         Subtask array contains an arbitrary number of subtasks.
         """
-   
+
         return mongo.db.boards.find_one_and_update(
                 {"_id": ObjectId(board_id)},
                 {
@@ -128,6 +129,10 @@ class Board:
                         "columns.$[t].tasks.$[i].subtasks": {
                             "$each": subtask_data
                         }
+                    },
+                    "$set": {
+                        "columns.$[t].tasks.$[i].title": new_title,
+                        "columns.$[t].tasks.$[i].description": new_description
                     }
                 },
                 array_filters=[

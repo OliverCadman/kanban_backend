@@ -301,6 +301,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
 
         patch_payload = {
             "title": "New Task Title",
+            "description": "Test Task Description",
             "subtasks": current_subtasks + subtasks_to_add
         }
 
@@ -316,16 +317,11 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         self.assertEqual(res.status_code, 200)
 
         data = json.loads(res.data)
-        print("RESPONSE DATA::::::::::::::::", data)
-        self.assertEqual(data["columns"][0]["tasks"][0]["title"], payload["title"])
-        self.assertEqual(len(data["columns"][0]["tasks"][0]["subtasks"]), 5)
+        task = data["columns"][0]["tasks"][0]
 
-        subtasks_data = data["columns"][0]["tasks"][0]["subtasks"]
-        # combined_payloads = payload | patch_payload
-
-        # for k, v in combined_payloads:
-        #     if k not in subtasks_data:
-        #         self.assertEqual(getattr(subtasks_data, k), v)
+        self.assertEqual(task["title"], patch_payload["title"])
+        self.assertEqual(task["description"], patch_payload["description"])
+        self.assertEqual(len(task["subtasks"]), 5)
 
 
     def test_add_task_unauthorized_user_error(self, app, client):

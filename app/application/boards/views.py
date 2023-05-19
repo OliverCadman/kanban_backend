@@ -169,6 +169,8 @@ def update_task(board_id, column_name, task_id):
 
     current_subtasks = current_task[0]["subtasks"]
     incoming_subtasks = data["subtasks"]
+    new_task_title = data["title"]
+    new_task_desccription = data["description"]
 
     # If there are more subtasks in request payload than in the current collection
     if len(current_subtasks) < len(incoming_subtasks):
@@ -178,17 +180,19 @@ def update_task(board_id, column_name, task_id):
                 # Update current task with new subtasks
                 subtasks_to_add.append(subtask)
         
-        updated_board = Board.add_subtasks_to_task(
-            board_id, column_name, task_id, subtasks_to_add)
+        updated_board = Board.update_task_add_subtasks(
+            board_id, column_name, task_id, subtasks_to_add,
+            new_task_title, new_task_desccription)
         
-        return parse_json(updated_board), 200
-
+        print("UPDATED BOARD:::::::", updated_board)
         
+        return parse_json(updated_board), 200      
 
     # If these are less sub tasks in request payload than in current collection
     # if len(current_subtasks) > len(incoming_subtasks):
     #     subtasks_to_remove = []
     #     for subtask in incoming_subtasks:
+
             
 
 
