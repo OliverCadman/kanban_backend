@@ -3,9 +3,11 @@ from application.test_helpers import client_post_helper
 from application.database import mongo
 import flask_unittest
 
+
 from application.boards.models import Board
 
 import json
+from bson.objectid import ObjectId
 from application.helpers import parse_json
 
 
@@ -359,7 +361,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
 
         data = json.loads(res.data)
         task_id = data["columns"][0]["tasks"][0]["_id"].get("$oid")
-        print("TASK ID:", task_id)
+
         current_subtasks = Board.get_task(self.board_id, self.test_column_1, task_id)[0]["subtasks"]
 
         # Remove all but one subtask from the list
@@ -390,6 +392,157 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
 
         # Confirm only one subtask in the returned collection.
         self.assertEqual(len(task["subtasks"]), 1)
+    
+    def test_update_task_add_tasks_change_existing_task_titles(self, app, client):
+        """
+        Test the following are successful:
+            Changing a task title
+            Adding subtasks
+            Changing existing subtask titles.
+        """
+        subtasks = [
+            {
+                "title": "Test Subtask Title 1",
+                "isCompleted": False,
+            },
+            {
+                "title": "Test Subtask Title 2",
+                "isCompleted": False
+            },
+            {
+                "title": "Test Subtask Title 3",
+                "isCompleted": False
+            }
+        ]
+
+        payload = {
+            "title": "Test Task Title",
+            "description": "Test Task Description",
+            "subtasks": subtasks
+        }
+
+        res = client.patch(
+            f"/api/add_task/{self.board_id}/{self.test_column_1}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 200)
+
+        data = json.loads(res.data)
+        task_id = data["columns"][0]["tasks"][0]["_id"].get("$oid")
+
+        current_subtasks = Board.get_task(self.board_id, self.test_column_1, task_id)[0]["subtasks"]
+
+        # New subtasks
+        new_subtasks = [
+            {
+                "title": "Test Subtask 4",
+                "isCompleted": False
+            },
+            {
+                "title": "Test Subtask 5",
+                "isCompleted": False
+            }
+        ]
+
+        # Change title of first two existing subtasks
+        current_subtasks[0]["title"] = "New Subtask Title 1"
+        current_subtasks[1]["title"] = "New Subtask Title 2"
+
+        patch_payload = {
+            "title": "New Task Title",
+            "description": "New Task Description",
+            "subtasks": current_subtasks + new_subtasks
+        }
+
+        res = client.patch(
+            f"/api/update_task/{self.board_id}/{self.test_column_1}/{task_id}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(parse_json(patch_payload)),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data)
+        
+        task = data["columns"][0]["tasks"][0]
+        self.assertEqual(len(task["subtasks"]), 5)
+        self.assertEqual(task["title"], patch_payload["title"])
+        self.assertEqual(task["description"], patch_payload["description"])
+        self.assertEqual(task["subtasks"][0]["title"], current_subtasks[0]["title"])
+        self.assertEqual(task["subtasks"][1]["title"], current_subtasks[1]["title"])
+
+
+    def test_update_task_remove_tasks_change_existing_task_titles(self, app, client):
+        subtasks = [
+            {
+                "title": "Test Subtask Title 1",
+                "isCompleted": False,
+            },
+            {
+                "title": "Test Subtask Title 2",
+                "isCompleted": False
+            },
+            {
+                "title": "Test Subtask Title 3",
+                "isCompleted": False
+            }
+        ]
+
+        payload = {
+            "title": "Test Task Title",
+            "description": "Test Task Description",
+            "subtasks": subtasks
+        }
+
+        res = client.patch(
+            f"/api/add_task/{self.board_id}/{self.test_column_1}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 200)
+
+        data = json.loads(res.data)
+        task_id = data["columns"][0]["tasks"][0]["_id"].get("$oid")
+
+        current_subtasks = Board.get_task(self.board_id, self.test_column_1, task_id)[0]["subtasks"]
+
+        patched_subtasks = current_subtasks[:-2]
+        patched_subtasks[0]["title"] = "New Subtask Title"
+
+        patch_payload = {
+            "title": "New Task Title",
+            "description": "New Task Description",
+            "subtasks": patched_subtasks
+        }
+
+        res = client.patch(
+            f"/api/update_task/{self.board_id}/{self.test_column_1}/{task_id}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(parse_json(patch_payload)),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 200)
+        
+        data = json.loads(res.data)
+        task = data["columns"][0]["tasks"][0]
+        self.assertEqual(len(task["subtasks"]), 1)
+        self.assertEqual(task["subtasks"][0]["title"], "New Subtask Title")
+        self.assertEqual(task["title"], patch_payload["title"])
+        self.assertEqual(task["description"], patch_payload["description"])
 
     def test_add_task_unauthorized_user_error(self, app, client):
         pass

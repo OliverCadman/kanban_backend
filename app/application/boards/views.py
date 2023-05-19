@@ -171,6 +171,19 @@ def update_task(board_id, column_name, task_id):
     new_task_title = data["title"]
     new_task_description = data["description"]
 
+    subtasks_to_update = []
+    for subtask in data["subtasks"]:
+        for current_subtask in current_task[0]["subtasks"]:
+            if subtask.get("_id") is not None and \
+                (ObjectId(subtask.get("_id").get("$oid")) == current_subtask["_id"]) and \
+                    subtask["title"] != current_subtask["title"]:
+                subtasks_to_update.append(subtask)
+    
+    if len(subtasks_to_update) > 0:
+        Board.update_subtask_title(board_id, column_name, task_id, subtasks_to_update)
+
+    updated_board = None
+
     # If there are more subtasks in request payload than in the current collection
     if len(current_subtasks) < len(incoming_subtasks):
         subtasks_to_add = []
@@ -182,8 +195,6 @@ def update_task(board_id, column_name, task_id):
         updated_board = Board.update_task_add_subtasks(
             board_id, column_name, task_id, subtasks_to_add,
             new_task_title, new_task_description)
-  
-        return parse_json(updated_board), 200      
 
     # If these are less sub tasks in request payload than in current collection
     if len(current_subtasks) > len(incoming_subtasks):
@@ -195,7 +206,7 @@ def update_task(board_id, column_name, task_id):
         subtasks_to_remove = []
 
         for subtask in current_subtasks:
-            print("CURRENT SUBTASK:", subtask)
+
             if subtask["_id"] not in subtask_ids_to_remove:
                 subtasks_to_remove.append(subtask["_id"])
 
@@ -203,10 +214,8 @@ def update_task(board_id, column_name, task_id):
             board_id, column_name, task_id, subtasks_to_remove,
             new_task_title, new_task_description
         )
-
-        return parse_json(updated_board), 200
-
-    # If the subtask arrays are of equal length, but don't contain the same titles.
+    
+    return parse_json(updated_board), 200
 
 
 @boards.route("/api/remove_task/<board_id>/<column_name>", methods=["POST"])

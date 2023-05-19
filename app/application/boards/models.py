@@ -174,6 +174,23 @@ class Board:
             ],
             return_document=ReturnDocument.AFTER
         )
+    
+    @staticmethod
+    def update_subtask_title(board_id, column_name, task_id, subtasks_to_update):
+        for subtask in subtasks_to_update:
+            mongo.db.boards.find_one_and_update(
+                {"_id": ObjectId(board_id)},
+                {
+                    "$set": {
+                        "columns.$[t].tasks.$[i].subtasks.$[j].title": subtask["title"]
+                    }
+                },
+                array_filters=[
+                    {"t.name": column_name},
+                    {"i._id": ObjectId(task_id)},
+                    {"j._id": ObjectId(subtask["_id"].get("$oid"))}
+                ]
+            )
         
 
     @staticmethod
@@ -192,7 +209,6 @@ class Board:
 
     @staticmethod
     def remove_task_from_column(board_id, column_name, task_id):
-        print(task_id)
         return mongo.db.boards.find_one_and_update(
             {
                 "_id": ObjectId(board_id),
