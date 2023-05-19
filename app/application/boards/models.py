@@ -118,8 +118,9 @@ class Board:
     def update_task_add_subtasks(board_id, column_name,
                             task_id, subtask_data, new_title, new_description):
         """
-        Add array of subtasks to a given task.
-        Subtask array contains an arbitrary number of subtasks.
+        Update title and description of task.
+        Push new subtasks into subtask array.
+        subtask_data handles and array containing an arbitrary number of subtasks.
         """
 
         return mongo.db.boards.find_one_and_update(
@@ -141,6 +142,38 @@ class Board:
                 ],
                 return_document=ReturnDocument.AFTER
             )
+
+    @staticmethod
+    def update_task_remove_subtasks(board_id, column_name,
+                                    task_id, subtasks_to_remove, new_title, new_description):
+        """
+        Update title and description of given task.
+        Pull subtasks from the subtask array.
+        If an ID of a given subtask is included in the array 'subtasks_to_remove',
+        pull it from the array.
+        """
+
+        return mongo.db.boards.find_one_and_update(
+            {"_id": ObjectId(board_id)},
+            {
+                "$pull": {
+                    "columns.$[t].tasks.$[i].subtasks": {
+                        "_id": {
+                            "$in": subtasks_to_remove
+                        }
+                    }
+                },
+                "$set": {
+                        "columns.$[t].tasks.$[i].title": new_title,
+                        "columns.$[t].tasks.$[i].description": new_description
+                    }
+            },
+            array_filters=[
+                {"t.name": column_name},
+                {"i._id": ObjectId(task_id)}
+            ],
+            return_document=ReturnDocument.AFTER
+        )
         
 
     @staticmethod

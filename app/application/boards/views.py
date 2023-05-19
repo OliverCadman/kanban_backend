@@ -164,13 +164,12 @@ def update_task(board_id, column_name, task_id):
 
     current_task = Board.get_task(board_id, column_name, task_id)
 
-    
     data = request.json
 
     current_subtasks = current_task[0]["subtasks"]
     incoming_subtasks = data["subtasks"]
     new_task_title = data["title"]
-    new_task_desccription = data["description"]
+    new_task_description = data["description"]
 
     # If there are more subtasks in request payload than in the current collection
     if len(current_subtasks) < len(incoming_subtasks):
@@ -182,23 +181,32 @@ def update_task(board_id, column_name, task_id):
         
         updated_board = Board.update_task_add_subtasks(
             board_id, column_name, task_id, subtasks_to_add,
-            new_task_title, new_task_desccription)
-        
-        print("UPDATED BOARD:::::::", updated_board)
-        
+            new_task_title, new_task_description)
+  
         return parse_json(updated_board), 200      
 
     # If these are less sub tasks in request payload than in current collection
-    # if len(current_subtasks) > len(incoming_subtasks):
-    #     subtasks_to_remove = []
-    #     for subtask in incoming_subtasks:
+    if len(current_subtasks) > len(incoming_subtasks):
+        subtask_ids_to_remove = []
+        for incoming_subtask in incoming_subtasks:
+            subtask_id = incoming_subtask["_id"].get("$oid")
+            subtask_ids_to_remove.append(ObjectId(subtask_id))
 
-            
+        subtasks_to_remove = []
 
+        for subtask in current_subtasks:
+            print("CURRENT SUBTASK:", subtask)
+            if subtask["_id"] not in subtask_ids_to_remove:
+                subtasks_to_remove.append(subtask["_id"])
 
+        updated_board = Board.update_task_remove_subtasks(
+            board_id, column_name, task_id, subtasks_to_remove,
+            new_task_title, new_task_description
+        )
+
+        return parse_json(updated_board), 200
 
     # If the subtask arrays are of equal length, but don't contain the same titles.
-
 
 
 @boards.route("/api/remove_task/<board_id>/<column_name>", methods=["POST"])
