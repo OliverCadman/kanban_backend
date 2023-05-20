@@ -24,5 +24,6 @@ RUN python -m venv /py && \
 USER www
 
 EXPOSE 8000
+EXPOSE 27017
 
 ENV PATH="/py/bin:$PATH"

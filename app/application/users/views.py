@@ -1,5 +1,11 @@
 from flask import Blueprint, request, jsonify, session
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import (
+    create_access_token,
+    jwt_required,
+    get_jwt_identity,
+    get_jwt,
+    set_access_cookies
+    )
 from application.users.models import User
 from exceptions.handlers import (
     EmailExistsError,
@@ -16,7 +22,30 @@ from application.helpers import parse_json
 from application.users.token import generate_token, confirm_token
 from application.database import mongo
 
+
+from datetime import datetime, timezone, timedelta
+
+
 users = Blueprint("users", __name__)
+
+
+@users.after_request
+def refresh_expiring_jwts(response):
+    try:
+        exp_timestamp = get_jwt()["exp"]
+        now = datetime.now(timezone.utc)
+        target_timestamp = datetime.timestamp(now + timedelta(minutes=30))
+        if target_timestamp > exp_timestamp:
+            access_token = create_access_token(identity=get_jwt_identity())
+            set_access_cookies(response, access_token)
+        return response
+    except (RuntimeError, KeyError):
+        return response
+
+
+@users.route('/')
+def index():
+    return jsonify({"msg": "Hello World!!"})
 
 
 @users.route('/user_profile', methods=['GET'])
@@ -43,6 +72,11 @@ def register():
             new_user.register()
             session["user_email"] = new_user.email
             token =  generate_token(new_user.email)
+
+
+            data['token'] = token
+            response = jsonify(token=data)
+
             confirm_url = f"127.0.0.1:8000/confirm_email/{token}"
             subject = 'Please confirm your email address.'
             # send_email(
@@ -72,9 +106,8 @@ def register():
                 "Your password should contain at least one special character.",
                 400
             )
-
-        data['token'] = token
-        return (jsonify(data), 201)
+        
+        return (response, 201)
 
 @users.route('/confirm_email/<token>')
 def confirm_email(token):
@@ -121,8 +154,10 @@ def login():
             password_check = User.check_password(user['password'], password)
             if password_check:
                 token = create_access_token(identity=email)
+                response = jsonify(token=token)
+                set_access_cookies(response, token)
                 session["user_email"] = email
-                return jsonify(token=token), 200
+                return response, 200
             else:
                 return jsonify({
                     'msg': 'Your password is invalid.'

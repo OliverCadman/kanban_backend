@@ -51,6 +51,9 @@ services:
       - MONGODB_LOG_DIR=${MONGODB_LOG_DIR}
     volumes:
       - mongodbdata:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    ports:
+      - "27017:27017"
     networks:
       - backend
 

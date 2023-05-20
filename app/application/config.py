@@ -16,7 +16,7 @@ class Config:
     + os.environ["MONGODB_HOSTNAME"]
     + ":27017/"
     + os.environ["MONGODB_DATABASE"]
-    )
+    ) + "?authSource=flaskdb&directConnection=true"
     
     SECURITY_PASSWORD_SALT = os.environ.get("SECURITY_PASSWORD_SALT")
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME")

@@ -1,5 +1,11 @@
 from flask import Blueprint, session, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import (
+    jwt_required, 
+    get_jwt_identity,
+    get_jwt,
+    set_access_cookies,
+    create_access_token
+    )
 
 from application.users.models import User
 from application.boards.models import Board
@@ -7,8 +13,24 @@ from bson.objectid import ObjectId
 
 from application.helpers import parse_json
 
+from datetime import datetime, timedelta, timezone
+
 
 boards = Blueprint('boards', __name__)
+
+
+@boards.after_request
+def refresh_expiring_jwts(response):
+    try:
+        exp_timestamp = get_jwt()["exp"]
+        now = datetime.now(timezone.utc)
+        target_timestamp = datetime.timestamp(now + timedelta(minutes=30))
+        if target_timestamp > exp_timestamp:
+            access_token = create_access_token(identity=get_jwt_identity())
+            set_access_cookies(response, access_token)
+        return response
+    except (RuntimeError, KeyError):
+        return response
 
 
 @boards.route('/api/create_board/', methods=["POST"])
