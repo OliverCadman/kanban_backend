@@ -160,4 +160,4 @@ cython_debug/
 #.idea/
 
 
-./init-mongo.js
+init-mongo.js
