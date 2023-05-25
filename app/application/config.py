@@ -27,3 +27,6 @@ class Config:
     MAIL_USE_SSL = bool(int(os.environ.get("MAIL_USE_SSL")))
     MAIL_DEBUG = bool(os.environ.get("MAIL_DEBUG"))
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER")
+    CORS_HEADERS = 'Content-Type'
+    JWT_COOKIE_SAMESITE = "None"
+    JWT_COOKIE_SECURE = True

@@ -37,6 +37,7 @@ services:
       - backend
     ports:
       - "8000:8000"
+      - "443:443"
 
   mongodb:
     image: mongo:4.0.8

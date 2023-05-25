@@ -1,4 +1,6 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, make_response
+from werkzeug.exceptions import HTTPException
+from flask_cors import CORS
 from flask_jwt_extended import (
     create_access_token,
     jwt_required,
@@ -13,7 +15,8 @@ from exceptions.handlers import (
     PasswordTooShortError,
     PasswordCharacterCaseError,
     PasswordDigitError,
-    PasswordSpecialCharacterError
+    PasswordSpecialCharacterError,
+    InvalidAPIUsage
     )
 from application.users.messaging import send_email
 
@@ -28,6 +31,8 @@ from datetime import datetime, timezone, timedelta
 
 users = Blueprint("users", __name__)
 
+CORS(users, supports_credentials=True, resources=r"*")
+
 
 @users.after_request
 def refresh_expiring_jwts(response):
@@ -41,6 +46,13 @@ def refresh_expiring_jwts(response):
         return response
     except (RuntimeError, KeyError):
         return response
+
+
+# @users.after_request
+# def cookie_middleware(response):
+#     response.headers.add("Access-Control-Allow-Credentials", "true")
+#     print("RESPONSE AFTER REQUEST:", response)
+#     return response
 
 
 @users.route('/')
@@ -86,26 +98,29 @@ def register():
             # )
 
         except EmailValidationError:
-            return ("Email is invalid.", 400)
+            error_msg = jsonify(msg="Email address is invalid.")
+            error_msg.headers.add('Access-Control-Allow-Origin', '*')
+            return 
         except EmailExistsError:
-            return ("Email already exists.", 400)
+            error_msg = jsonify(msg="Email already exists.")
+            error_msg.headers.add('Access-Control-Allow-Origin', '*')
+            return (error_msg, 400)
         except PasswordTooShortError:
-            return ("Password is too short.", 400)
+            error_msg = jsonify(msg="Your password is too short.")
+            return error_msg, 400
         except PasswordCharacterCaseError:
-            return (
-                "Your password should contain at least one uppercase letter.",
-                400
-                )
+            error_msg = jsonify(msg="Your password should contain at least one uppercase letter.")
+            error_msg.headers.add('Access-Control-Allow-Origin', '*')
+            return error_msg, 400
         except PasswordDigitError:
-            return (
-                "Your password should contain at least one number.",
-                400
-            )
+            error_msg = jsonify(msg="Your password should contain at least one number.")
+            error_msg.headers.add('Access-Control-Allow-Origin', '*')
+            return error_msg, 400
         except PasswordSpecialCharacterError:
-            return (
-                "Your password should contain at least one special character.",
-                400
-            )
+            error_msg = jsonify(msg="Your password should contain at least one special character.")
+            response = make_response(error_msg, 400)
+            response.headers["Content-Type"] = 'application/json'
+            return make_response(error_msg, 400)
         
         return (response, 201)
 
@@ -155,11 +170,13 @@ def login():
             if password_check:
                 token = create_access_token(identity=email)
                 response = jsonify(token=token)
-                set_access_cookies(response, token)
+                cookies = set_access_cookies(response, token)
+
                 session["user_email"] = email
+
                 return response, 200
             else:
                 return jsonify({
                     'msg': 'Your password is invalid.'
-                }), 401
+                }), 400
             

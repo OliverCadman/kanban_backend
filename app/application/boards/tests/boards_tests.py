@@ -35,7 +35,6 @@ class BoardAPITests(flask_unittest.AppClientTestCase):
     def test_board_create_no_columns(self, app, client):
         """
         Test creating a board with no columns
-        Returned data should contain 
         """
         payload = {
             "name": "Test Board Name",
@@ -213,6 +212,63 @@ class BoardAPITests(flask_unittest.AppClientTestCase):
     
         self.assertEqual(len(data["columns"]), 1)
         self.assertEqual(data["columns"][0]["name"], "Test Column 1")
+    
+    def test_list_boards(self, app, client):
+        """Test retrieving list of board names (with IDs) is successful"""
+
+        # Add first board
+        payload = {
+            "name": "Test Board Name 1",
+            "columns": []
+        }
+
+        res = client.post(
+            "/api/create_board/",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 201)
+
+        # Add second board
+        payload = {
+            "name": "Test Board Name 2",
+            "columns": []
+        }
+        
+        res = client.post(
+            "/api/create_board/",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 201)
+
+        res = client.get(
+            "/api/list_boards",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            }
+        )
+
+        self.assertEqual(res.status_code, 200)
+        
+        data = json.loads(res.data)
+        self.assertEqual(len(data), 2)
+
+        for board in data:
+            self.assertIn("_id", board)
+            self.assertIn("name", board)
+            self.assertNotIn("user", board)
+            self.assertNotIn("columns", board)
+        
 
     def tearDown(self, app, client):
         mongo.db.users.delete_many({})
+        mongo.db.boards.delete_many({})

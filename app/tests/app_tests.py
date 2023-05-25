@@ -48,7 +48,9 @@ class UserAPITests(flask_unittest.ClientTestCase):
         res = client.post('/register', data=json.dumps(payload), content_type="application/json")
 
         self.assertEqual(res.status_code, 400)
-        self.assertEqual(res.data, b'Email already exists.')
+
+        data = json.loads(res.data)
+        self.assertEqual(data["msg"], 'Email already exists.')
     
     # def test_user_register_invalid_email_error(self, client):
     #     """Test error thrown if email is invalid"""
@@ -79,7 +81,9 @@ class UserAPITests(flask_unittest.ClientTestCase):
             '/register', data=json.dumps(payload), content_type="application/json")
         
         self.assertEqual(res.status_code, 400)
-        self.assertEqual(res.data, b'Password is too short.')
+
+        data = json.loads(res.data)
+        self.assertEqual(data["msg"], 'Your password is too short.')
     
     def test_password_no_uppercase_letter_error(self, client):
         """Test error raised if password does not contain capital letter."""
@@ -94,7 +98,9 @@ class UserAPITests(flask_unittest.ClientTestCase):
             '/register', data=json.dumps(payload), content_type="application/json")
         
         self.assertEqual(res.status_code, 400)
-        self.assertEqual(res.data, b'Your password should contain at least one uppercase letter.')
+
+        data = json.loads(res.data)
+        self.assertEqual(data["msg"], 'Your password should contain at least one uppercase letter.')
     
     def test_password_no_digit_error(self, client):
         """Test error raised if password does not contain at least one digit."""
@@ -109,7 +115,9 @@ class UserAPITests(flask_unittest.ClientTestCase):
             '/register', data=json.dumps(payload), content_type="application/json")
         
         self.assertEqual(res.status_code, 400)
-        self.assertEqual(res.data, b'Your password should contain at least one number.')
+
+        data = json.loads(res.data)
+        self.assertEqual(data["msg"], 'Your password should contain at least one number.')
 
     def test_password_no_special_char_error(self, client):
         """Test error raised if password does not contain at least one special character."""
@@ -124,7 +132,8 @@ class UserAPITests(flask_unittest.ClientTestCase):
             '/register', data=json.dumps(payload), content_type="application/json")
         
         self.assertEqual(res.status_code, 400)
-        self.assertEqual(res.data, b'Your password should contain at least one special character.')
+        data = json.loads(res.data)
+        self.assertEqual(data["msg"], 'Your password should contain at least one special character.')
 
     # def test_verify_token(self, client):
     #     """
@@ -203,7 +212,7 @@ class UserAPITests(flask_unittest.ClientTestCase):
             "password": "badPassword123!"
         })
 
-        self.assertEqual(res.status_code, 401)
+        self.assertEqual(res.status_code, 400)
         self.assertEqual(json.loads(res.data)['msg'], 'Your password is invalid.')
     
     def test_get_user_profile(self, client):

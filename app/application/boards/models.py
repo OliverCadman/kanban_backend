@@ -68,7 +68,11 @@ class Board:
     @staticmethod
     def get_boards(user_id):
         return mongo.db.boards.find(
-            {"user": ObjectId(user_id)}
+            {"user": ObjectId(user_id)},
+            {
+                "columns": 0,
+                "user": 0
+            }
         )
 
     @staticmethod

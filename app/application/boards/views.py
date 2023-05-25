@@ -1,4 +1,6 @@
 from flask import Blueprint, session, request, jsonify
+from werkzeug.exceptions import HTTPException
+from flask_cors import CORS
 from flask_jwt_extended import (
     jwt_required, 
     get_jwt_identity,
@@ -18,9 +20,11 @@ from datetime import datetime, timedelta, timezone
 
 boards = Blueprint('boards', __name__)
 
+CORS(boards, supports_credentials=True, resources=r"/api/*")
 
 @boards.after_request
 def refresh_expiring_jwts(response):
+
     try:
         exp_timestamp = get_jwt()["exp"]
         now = datetime.now(timezone.utc)
@@ -31,7 +35,7 @@ def refresh_expiring_jwts(response):
         return response
     except (RuntimeError, KeyError):
         return response
-
+    
 
 @boards.route('/api/create_board/', methods=["POST"])
 @jwt_required()
@@ -68,22 +72,25 @@ def add_board():
         return 'Error', 404
 
 
-@boards.route('/api/get_boards', methods=["GET"])
+
+@boards.route('/api/list_boards', methods=["GET"])
 @jwt_required()
-def get_boards():
+def list_boards():
     user_email = get_jwt_identity()
     user = User.find_user_no_password(user_email)
 
-    if user_email != session["user_email"]:
-        return jsonify({
-              "msg": "You are not authorized to access another user's boards."
-        }), 401
+    # if user_email != session["user_email"]:
+    #     return jsonify({
+    #           "msg": "You are not authorized to access another user's boards."
+    #     }), 401
 
     if user is not None:
         board_collection = []
         boards = Board.get_boards(user["_id"])
         for board in boards:
             board_collection.append(board)
+
+        print("BOARD COLLECTION", board_collection)
         return parse_json(board_collection), 200
 
 

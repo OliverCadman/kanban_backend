@@ -161,3 +161,6 @@ cython_debug/
 
 
 init-mongo.js
+server.crt
+server.csr
+server.key
