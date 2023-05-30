@@ -70,7 +70,6 @@ class Board:
         return mongo.db.boards.find(
             {"user": ObjectId(user_id)},
             {
-                "columns": 0,
                 "user": 0
             }
         )
@@ -120,7 +119,7 @@ class Board:
 
     @staticmethod
     def update_task_add_subtasks(board_id, column_name,
-                            task_id, subtask_data, new_title, new_description):
+                                 task_id, subtask_data):
         """
         Update title and description of task.
         Push new subtasks into subtask array.
@@ -134,10 +133,6 @@ class Board:
                         "columns.$[t].tasks.$[i].subtasks": {
                             "$each": subtask_data
                         }
-                    },
-                    "$set": {
-                        "columns.$[t].tasks.$[i].title": new_title,
-                        "columns.$[t].tasks.$[i].description": new_description
                     }
                 },
                 array_filters=[
@@ -148,8 +143,27 @@ class Board:
             )
 
     @staticmethod
+    def update_task_meta(board_id, column_name, task_id, 
+                         new_title, new_description):
+        """Update title and description of task."""
+        return mongo.db.boards.find_one_and_update(
+            {"_id": ObjectId(board_id)},
+            {
+                "$set": {
+                    "columns.$[t].tasks.$[i].title": new_title,
+                    "columns.$[t].tasks.$[i].description": new_description
+                }
+            },
+             array_filters=[
+                    {"t.name": column_name},
+                    {"i._id": ObjectId(task_id)}
+                ],
+            return_document=ReturnDocument.AFTER
+        )
+
+    @staticmethod
     def update_task_remove_subtasks(board_id, column_name,
-                                    task_id, subtasks_to_remove, new_title, new_description):
+                                    task_id, subtasks_to_remove):
         """
         Update title and description of given task.
         Pull subtasks from the subtask array.
@@ -166,11 +180,7 @@ class Board:
                             "$in": subtasks_to_remove
                         }
                     }
-                },
-                "$set": {
-                        "columns.$[t].tasks.$[i].title": new_title,
-                        "columns.$[t].tasks.$[i].description": new_description
-                    }
+                }
             },
             array_filters=[
                 {"t.name": column_name},
@@ -195,7 +205,46 @@ class Board:
                     {"j._id": ObjectId(subtask["_id"].get("$oid"))}
                 ]
             )
-        
+    
+
+    def update_task_status(board_id, task_id, 
+                           prev_status, new_status, new_task):
+
+        mongo.db.boards.find_one_and_update(
+            {
+                "_id": ObjectId(board_id),
+                "columns.name": prev_status
+            },
+            {
+    
+                "$pull": {
+                    "columns.$[t].tasks": {
+                        "_id": ObjectId(task_id)
+                    }
+                },
+                "$push": {
+                    "columns.$[i].tasks": new_task
+                }
+            },
+            array_filters=[
+                {"t.name": prev_status},
+                {"i.name": new_status}
+            ]
+        )
+    
+        return mongo.db.boards.find_one_and_update(
+            {"_id": ObjectId(board_id)},
+            {
+                 "$set": {
+                    "columns.$[i].tasks.$[j].status": new_status
+                },
+            },
+            array_filters=[
+                {"i.name": new_status},
+                {"j._id": ObjectId(task_id)}
+            ],
+            return_document=ReturnDocument.AFTER
+        )
 
     @staticmethod
     def add_task_to_column(board_id, column_name, task_data): 

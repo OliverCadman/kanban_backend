@@ -1,7 +1,6 @@
 from flask import Flask
 from flask_jwt_extended import JWTManager
-from werkzeug.exceptions import HTTPException
-import json
+
 
 from application.users.views import users as user_bp
 from application.boards.views import boards as boards_bp

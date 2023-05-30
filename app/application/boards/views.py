@@ -90,7 +90,6 @@ def list_boards():
         for board in boards:
             board_collection.append(board)
 
-        print("BOARD COLLECTION", board_collection)
         return parse_json(board_collection), 200
 
 
@@ -141,9 +140,9 @@ def update_board_columns(board_id):
         return parse_json(updated_board), 200
 
 
-@boards.route('/api/add_task/<board_id>/<column_name>', methods=["POST", "PATCH"])
+@boards.route('/api/add_task/<board_id>/<task_status>', methods=["POST", "PATCH"])
 @jwt_required()
-def add_task(board_id, column_name):
+def add_task(board_id, task_status):
     """
     Add tasks for a given column.
     The task's column is referenced by the column name,
@@ -165,7 +164,7 @@ def add_task(board_id, column_name):
         for subtask in task["subtasks"]:
             subtask["_id"] = ObjectId()
 
-    Board.add_task_to_column(board_id, column_name, task)
+    Board.add_task_to_column(board_id, task_status, task)
     updated_board = Board.find_board_by_id(board_id)
     return parse_json(updated_board), 200
 
@@ -196,9 +195,12 @@ def update_task(board_id, column_name, task_id):
     data = request.json
 
     current_subtasks = current_task[0]["subtasks"]
+    current_task_status = current_task[0]["status"]
+
     incoming_subtasks = data["subtasks"]
     new_task_title = data["title"]
     new_task_description = data["description"]
+
 
     subtasks_to_update = []
     for subtask in data["subtasks"]:
@@ -222,8 +224,7 @@ def update_task(board_id, column_name, task_id):
                 subtasks_to_add.append(subtask)
         
         updated_board = Board.update_task_add_subtasks(
-            board_id, column_name, task_id, subtasks_to_add,
-            new_task_title, new_task_description)
+            board_id, column_name, task_id, subtasks_to_add)
 
     # If these are less sub tasks in request payload than in current collection
     if len(current_subtasks) > len(incoming_subtasks):
@@ -240,10 +241,30 @@ def update_task(board_id, column_name, task_id):
                 subtasks_to_remove.append(subtask["_id"])
 
         updated_board = Board.update_task_remove_subtasks(
-            board_id, column_name, task_id, subtasks_to_remove,
-            new_task_title, new_task_description
+            board_id, column_name, task_id, subtasks_to_remove
         )
     
+
+    updated_board = Board.update_task_meta(
+        board_id, column_name, task_id, new_task_title,
+        new_task_description
+    )
+
+    # If status in incoming payload differs from status of task at present
+    if current_task_status != data["status"]:
+        column_to_remove_task_from = current_task_status
+        column_to_inject_task_into = data["status"]
+
+        current_task = Board.get_task(board_id, column_to_remove_task_from, task_id)[0]
+
+        updated_board = Board.update_task_status(board_id,
+                                 task_id,
+                                 column_to_remove_task_from,
+                                 column_to_inject_task_into,
+                                 current_task)
+        
+        current_task = Board.get_task(board_id, column_to_inject_task_into, task_id)[0]
+
     return parse_json(updated_board), 200
 
 

@@ -265,8 +265,8 @@ class BoardAPITests(flask_unittest.AppClientTestCase):
         for board in data:
             self.assertIn("_id", board)
             self.assertIn("name", board)
+            self.assertIn("columns", board)
             self.assertNotIn("user", board)
-            self.assertNotIn("columns", board)
         
 
     def tearDown(self, app, client):

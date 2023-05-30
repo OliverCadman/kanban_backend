@@ -3,6 +3,7 @@ from werkzeug.exceptions import HTTPException
 from flask_cors import CORS
 from flask_jwt_extended import (
     create_access_token,
+    create_refresh_token,
     jwt_required,
     get_jwt_identity,
     get_jwt,
@@ -48,16 +49,22 @@ def refresh_expiring_jwts(response):
         return response
 
 
-# @users.after_request
-# def cookie_middleware(response):
-#     response.headers.add("Access-Control-Allow-Credentials", "true")
-#     print("RESPONSE AFTER REQUEST:", response)
-#     return response
 
 
 @users.route('/')
 def index():
     return jsonify({"msg": "Hello World!!"})
+
+
+@users.route('/refresh_token', methods=["POST"])
+@jwt_required(refresh=True)
+def refresh_jwt():
+    current_user = get_jwt_identity()
+    new_token = create_access_token(identity=current_user)
+
+    return jsonify({
+        "access_token": new_token
+    })
 
 
 @users.route('/user_profile', methods=['GET'])
@@ -159,7 +166,7 @@ def login():
         email = data['email']
         password = data['password']
 
-        if not data or not password:
+        if not email or not password:
             return jsonify({
                 'msg': 'Please provide an email/password,'
             })
@@ -169,14 +176,14 @@ def login():
             password_check = User.check_password(user['password'], password)
             if password_check:
                 token = create_access_token(identity=email)
-                response = jsonify(token=token)
+                refresh_token = create_refresh_token(identity=email)
+                response = jsonify({
+                    "token": token
+                })
                 cookies = set_access_cookies(response, token)
-
                 session["user_email"] = email
-
                 return response, 200
             else:
                 return jsonify({
                     'msg': 'Your password is invalid.'
                 }), 400
-            

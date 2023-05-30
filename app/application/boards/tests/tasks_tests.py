@@ -84,6 +84,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         payload = {
             "title": "Test Task Title",
             "description": "Test Task Description",
+            "status": self.test_column_1,
             "subtasks": []
         }
 
@@ -103,6 +104,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         self.assertEqual(len(data["columns"][0]["tasks"]), 1)
         self.assertEqual(len(data["columns"][1]["tasks"]), 0)
         self.assertEqual(data["columns"][0]["tasks"][0]["title"], payload["title"])
+        self.assertEqual(data["columns"][0]["tasks"][0]["status"], payload["status"])
         self.assertEqual(data["columns"][0]["tasks"][0]["description"], payload["description"])
         self.assertIn("subtasks", data["columns"][0]["tasks"][0])
 
@@ -110,6 +112,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         payload_2 = {
             "title": "Test Second Task Title",
             "description": "Test Second Task Description",
+            "status": self.test_column_2,
             "subtasks": []
         }
 
@@ -130,6 +133,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         self.assertEqual(len(data["columns"][2]["tasks"]), 0)
         self.assertEqual(data["columns"][1]["tasks"][0]["title"], payload_2["title"])
         self.assertEqual(data["columns"][1]["tasks"][0]["description"], payload_2["description"])
+        self.assertEqual(data["columns"][1]["tasks"][0]["status"], payload_2["status"])
         self.assertIn("subtasks", data["columns"][1]["tasks"][0])
 
 
@@ -153,6 +157,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         payload = {
             "title": "Test Task Title",
             "description": "Test Task Description",
+            "status": self.test_column_1,
             "subtasks": subtasks
         }
 
@@ -171,6 +176,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         self.assertEqual(len(data["columns"][0]["tasks"]), 1)
         self.assertEqual(data["columns"][0]["tasks"][0]["title"], payload["title"])
         self.assertEqual(data["columns"][0]["tasks"][0]["description"], payload["description"])
+        self.assertEqual(data["columns"][0]["tasks"][0]["status"], payload["status"])
 
         subtasks_data = data["columns"][0]["tasks"][0]["subtasks"]
         self.assertEqual(len(subtasks_data), 3)
@@ -185,6 +191,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         payload = {
             "title": "Test Task Title",
             "description": "Test Task Description",
+            "status": self.test_column_1,
             "subtasks": []
         }
 
@@ -244,6 +251,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         payload = {
             "title": "Test Task Title",
             "description": "Test Task Description",
+            "status": self.test_column_1,
             "subtasks": subtasks
         }
 
@@ -274,6 +282,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         payload_2 = {
             "title": "Test Task Title 2",
             "description": "Test Task Description",
+            "status": self.test_column_2,
             "subtasks": subtasks
         }
 
@@ -304,6 +313,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         patch_payload = {
             "title": "New Task Title",
             "description": "Test Task Description",
+            "status": self.test_column_1,
             "subtasks": current_subtasks + subtasks_to_add
         }
 
@@ -345,6 +355,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         payload = {
             "title": "Test Task Title",
             "description": "Test Task Description",
+            "status": self.test_column_1,
             "subtasks": subtasks
         }
 
@@ -370,6 +381,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         patched_payload = {
             "title": "New Task Title",
             "description": "New Task Description",
+            "status": self.test_column_1,
             "subtasks": patched_subtasks
         }
 
@@ -418,6 +430,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         payload = {
             "title": "Test Task Title",
             "description": "Test Task Description",
+            "status": self.test_column_1,
             "subtasks": subtasks
         }
 
@@ -456,6 +469,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         patch_payload = {
             "title": "New Task Title",
             "description": "New Task Description",
+            "status": self.test_column_1,
             "subtasks": current_subtasks + new_subtasks
         }
 
@@ -498,6 +512,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         payload = {
             "title": "Test Task Title",
             "description": "Test Task Description",
+            "status": self.test_column_1,
             "subtasks": subtasks
         }
 
@@ -523,6 +538,7 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         patch_payload = {
             "title": "New Task Title",
             "description": "New Task Description",
+            "status": self.test_column_1,
             "subtasks": patched_subtasks
         }
 
@@ -543,6 +559,66 @@ class TaskAPITests(flask_unittest.AppClientTestCase):
         self.assertEqual(task["subtasks"][0]["title"], "New Subtask Title")
         self.assertEqual(task["title"], patch_payload["title"])
         self.assertEqual(task["description"], patch_payload["description"])
+
+    def test_change_task_status(self, app, client):
+        """Test updating the status of a task object is successful."""
+        
+        # Create initial test payload
+        # Uses first column name as initial status
+        payload = {
+            "title": "Test Task Title",
+            "description": "Test Task Description",
+            "status": self.test_column_1,
+            "subtasks": []
+        }
+
+        res = client.post(
+            f"/api/add_task/{self.board_id}/{self.test_column_1}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 200)
+
+        data = json.loads(res.data)
+        self.assertEqual(len(data["columns"][0]["tasks"]), 1)
+        self.assertEqual(data["columns"][0]["tasks"][0]["title"], payload["title"])
+        self.assertEqual(data["columns"][0]["tasks"][0]["description"], payload["description"])
+        self.assertEqual(data["columns"][0]["tasks"][0]["status"], payload["status"])
+
+        task_id = data["columns"][0]["tasks"][0]["_id"].get("$oid")
+        
+        payload = {
+            "title": "New Task Title",
+            "description": "New Task Description",
+            "status": self.test_column_2,
+            "subtasks": []
+        }
+
+        res = client.patch(
+            f"/api/update_task/{self.board_id}/{self.test_column_1}/{task_id}",
+            headers={
+                "Authorization": f"Bearer {self.jwt_token}"
+            },
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        self.assertEqual(res.status_code, 200)
+
+        data = json.loads(res.data)
+        
+        self.assertEqual(len(data["columns"][0]["tasks"]), 0)
+        self.assertEqual(len(data["columns"][1]["tasks"]), 1)
+        self.assertEqual(data["columns"][1]["tasks"][0]["title"], payload["title"])
+        self.assertEqual(data["columns"][1]["tasks"][0]["description"], payload["description"])
+        self.assertEqual(data["columns"][1]["tasks"][0]["status"], payload["status"])
+
+
+
 
     def test_add_task_unauthorized_user_error(self, app, client):
         pass
